@@ -1,0 +1,10 @@
+flask
+flask-cors
+gunicorn
+tensorflow
+numpy
+pandas
+scikit-learn
+python-dotenv
+twilio
+googlemaps

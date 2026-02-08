@@ -1,0 +1,31 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Environment files
+.env
+
+# Git
+.git/
+.gitignore
+
+# Large data files (not needed for inference)
+*.csv
+data/
+
+# IDE
+.vscode/
+.idea/
+
+# Test files
+test_*.py
+tests/
+
+# Documentation
+*.md
