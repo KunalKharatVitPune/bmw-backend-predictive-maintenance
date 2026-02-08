@@ -8,7 +8,7 @@ import os
 import sys
 
 from config import config
-from services import PredictionService, AlertService, LocationService
+from services import PredictionService, AlertService, LocationService, GeminiService
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -48,6 +48,11 @@ location_service = LocationService(
     api_key=app.config['GOOGLE_MAPS_API_KEY']
 )
 
+# Gemini AI Service (for intelligent insights)
+gemini_service = GeminiService(
+    api_key=getattr(app.config, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
+)
+
 # Load ML models on startup
 try:
     prediction_service.load_models()
@@ -70,7 +75,8 @@ def index():
             'health': '/health',
             'predict': '/api/predict',
             'service_centers': '/api/service-centers',
-            'alerts': '/api/alerts/send'
+            'alerts': '/api/alerts/send',
+            'ai_insights': '/api/ai/insights'
         }
     }), 200
 
@@ -83,6 +89,63 @@ def health_check():
         'message': 'Vehicle Health Monitoring API is running',
         'version': '1.0.0'
     }), 200
+
+
+@app.route('/api/ai/insights', methods=['POST'])
+def get_ai_insights():
+    """
+    Generate AI-powered insights for degradation factors
+    
+    Expected JSON body:
+    {
+        "contributors": [
+            {"feature": "Motor RPM", "value": 2200, "importance": 2200.0},
+            ...
+        ],
+        "kpis": {...},  # optional
+        "component_health": {...}  # optional
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "insights": "AI generated text...",
+        "message": "Analysis generated successfully"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        contributors = data.get('contributors', [])
+        kpis = data.get('kpis', None)
+        component_health = data.get('component_health', None)
+        
+        if not contributors:
+            return jsonify({
+                'success': False,
+                'error': 'No degradation contributors provided'
+            }), 400
+        
+        # Get AI analysis
+        result = gemini_service.analyze_degradation(
+            contributors=contributors,
+            kpis=kpis,
+            component_health=component_health
+        )
+        
+        return jsonify(result), 200 if result['success'] else 500
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 
 @app.route('/api/predict', methods=['POST'])

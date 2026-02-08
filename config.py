@@ -28,6 +28,9 @@ class Config:
     # Google Maps
     GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
     
+    # Gemini AI API Key
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+    
     # Alert Thresholds
     ALERT_THRESHOLD_FAILURE = float(os.getenv('ALERT_THRESHOLD_FAILURE', '0.7'))
     ALERT_THRESHOLD_RUL = int(os.getenv('ALERT_THRESHOLD_RUL', '30'))
