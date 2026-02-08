@@ -17,8 +17,12 @@ app = Flask(__name__)
 env = os.getenv('FLASK_ENV', 'development')
 app.config.from_object(config[env])
 
-# Enable CORS
-CORS(app, origins=app.config['CORS_ORIGINS'])
+# Enable CORS with full configuration
+CORS(app, 
+     origins=app.config['CORS_ORIGINS'],
+     supports_credentials=True,
+     allow_headers=["Content-Type", "Authorization"],
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # Initialize services
 print("Initializing services...")
