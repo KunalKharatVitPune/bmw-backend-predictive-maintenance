@@ -198,3 +198,162 @@ IMPORTANT: Return ONLY the JSON array, no other text or markdown formatting.
                 'success': False,
                 'message': f'Connection failed: {str(e)}'
             }
+    
+    # =========================================================================
+    # CHATBOT METHODS
+    # =========================================================================
+    
+    CHATBOT_NAME = "AutoCare AI"
+    
+    def initialize_chat_with_context(self, prediction_data: Dict, pdf_url: str = None) -> Dict:
+        """
+        Initialize a chat session with vehicle health context
+        
+        Args:
+            prediction_data: The prediction results (KPIs, component health, etc.)
+            pdf_url: Optional URL to the uploaded PDF report
+            
+        Returns:
+            Dictionary with session info and greeting message
+        """
+        if not self.model:
+            return {
+                'success': False,
+                'message': 'Gemini AI not configured',
+                'greeting': None
+            }
+        
+        try:
+            # Build context from prediction data
+            context = self._build_chat_context(prediction_data)
+            
+            # Create system prompt with context
+            system_prompt = f"""You are {self.CHATBOT_NAME}, a friendly and knowledgeable vehicle health assistant.
+
+You have access to the following vehicle health analysis data:
+
+{context}
+
+Your role:
+- Answer questions about this specific vehicle's health status
+- Explain KPIs, component scores, and degradation factors in simple terms
+- Provide practical maintenance advice based on the data
+- Be concise but helpful - aim for 2-3 sentences unless more detail is requested
+- Use a friendly, professional tone
+- If asked something outside your knowledge, politely explain you can only help with this vehicle's analysis
+
+IMPORTANT: Always refer to the specific data provided. Don't make up values.
+"""
+            
+            # Start chat session
+            self.chat_session = self.model.start_chat(history=[])
+            self.chat_context = system_prompt
+            
+            # Generate greeting
+            greeting = f"Hello! I'm {self.CHATBOT_NAME}, your vehicle health assistant. How can I help you today?"
+            
+            return {
+                'success': True,
+                'message': 'Chat initialized successfully',
+                'greeting': greeting,
+                'chatbot_name': self.CHATBOT_NAME
+            }
+            
+        except Exception as e:
+            print(f"Chat initialization error: {e}")
+            return {
+                'success': False,
+                'message': f'Failed to initialize chat: {str(e)}',
+                'greeting': None
+            }
+    
+    def chat(self, user_message: str) -> Dict:
+        """
+        Send a message and get a response
+        
+        Args:
+            user_message: The user's question or message
+            
+        Returns:
+            Dictionary with AI response
+        """
+        if not self.model:
+            return {
+                'success': False,
+                'response': 'Chat is not available. Gemini AI not configured.'
+            }
+        
+        if not hasattr(self, 'chat_session') or not self.chat_session:
+            return {
+                'success': False,
+                'response': 'Chat session not initialized. Please start a new analysis first.'
+            }
+        
+        try:
+            # Prepend context to first message if not already done
+            if not hasattr(self, 'context_sent') or not self.context_sent:
+                full_message = f"{self.chat_context}\n\nUser question: {user_message}"
+                self.context_sent = True
+            else:
+                full_message = user_message
+            
+            # Get response
+            response = self.chat_session.send_message(full_message)
+            
+            return {
+                'success': True,
+                'response': response.text.strip()
+            }
+            
+        except Exception as e:
+            print(f"Chat error: {e}")
+            return {
+                'success': False,
+                'response': f'Sorry, I encountered an error. Please try again.'
+            }
+    
+    def reset_chat(self):
+        """Reset the chat session"""
+        self.chat_session = None
+        self.chat_context = None
+        self.context_sent = False
+    
+    def _build_chat_context(self, prediction_data: Dict) -> str:
+        """Build context string from prediction data"""
+        context = "## Vehicle Health Analysis Results\n\n"
+        
+        # KPIs
+        kpis = prediction_data.get('kpis', {})
+        if kpis:
+            context += "### Key Performance Indicators:\n"
+            context += f"- Failure Probability: {kpis.get('failure_probability', 'N/A')}%\n"
+            context += f"- Remaining Useful Life: {kpis.get('remaining_useful_life', 'N/A')} cycles\n"
+            context += f"- Anomaly Score: {kpis.get('anomaly_score', 'N/A')}\n"
+            context += f"- Overall Health: {kpis.get('overall_health', 'N/A')}%\n\n"
+        
+        # Component Health
+        component_health = prediction_data.get('component_health', {})
+        if component_health:
+            context += "### Component Health Scores:\n"
+            for component, data in component_health.items():
+                score = data.get('score', 'N/A') if isinstance(data, dict) else data
+                context += f"- {component}: {score}%\n"
+            context += "\n"
+        
+        # Degradation Contributors
+        contributors = prediction_data.get('degradation_contributors', [])
+        if contributors:
+            context += "### Top Degradation Factors:\n"
+            for i, contrib in enumerate(contributors[:5], 1):
+                context += f"{i}. {contrib.get('feature', 'Unknown')}: Value={contrib.get('value', 'N/A')}, Impact={contrib.get('importance', 0):.3f}\n"
+            context += "\n"
+        
+        # Maintenance Decision
+        maintenance = prediction_data.get('maintenance_decision', {})
+        if maintenance:
+            context += "### Maintenance Recommendation:\n"
+            context += f"- Level: {maintenance.get('level', 'N/A')}\n"
+            context += f"- Message: {maintenance.get('message', 'N/A')}\n"
+            context += f"- Description: {maintenance.get('description', 'N/A')}\n"
+        
+        return context

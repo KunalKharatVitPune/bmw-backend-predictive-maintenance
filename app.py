@@ -215,6 +215,61 @@ def upload_pdf():
             'error': str(e)
         }), 500
 
+@app.route('/api/chatbot/init', methods=['POST'])
+def init_chatbot():
+    """
+    Initialize chatbot with vehicle health context
+    
+    Expected JSON body:
+    {
+        "prediction_data": {...},
+        "pdf_url": "https://..."
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        prediction_data = data.get('prediction_data', {})
+        pdf_url = data.get('pdf_url')
+        
+        result = gemini_service.initialize_chat_with_context(prediction_data, pdf_url)
+        return jsonify(result), 200 if result['success'] else 500
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/chatbot/message', methods=['POST'])
+def chatbot_message():
+    """
+    Send a message to the chatbot
+    
+    Expected JSON body:
+    {
+        "message": "What is my vehicle's main concern?"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        message = data.get('message', '').strip()
+        
+        if not message:
+            return jsonify({'success': False, 'error': 'No message provided'}), 400
+        
+        result = gemini_service.chat(message)
+        return jsonify(result), 200 if result['success'] else 500
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/predict', methods=['POST'])
 def predict():
     """
