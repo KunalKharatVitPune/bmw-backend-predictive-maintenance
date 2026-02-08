@@ -10,3 +10,4 @@ twilio
 googlemaps
 google-generativeai
 cloudinary
+sendgrid

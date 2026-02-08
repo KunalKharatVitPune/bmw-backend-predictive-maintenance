@@ -8,7 +8,7 @@ import os
 import sys
 
 from config import config
-from services import PredictionService, AlertService, LocationService, GeminiService, CloudinaryService
+from services import PredictionService, AlertService, LocationService, GeminiService, CloudinaryService, EmailService
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -58,6 +58,12 @@ cloudinary_service = CloudinaryService(
     cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
     api_key=os.getenv('CLOUDINARY_API_KEY'),
     api_secret=os.getenv('CLOUDINARY_API_SECRET')
+)
+
+# Email Service (SendGrid for sending reports)
+email_service = EmailService(
+    api_key=os.getenv('SENDGRID_API_KEY'),
+    from_email=os.getenv('SENDGRID_FROM_EMAIL')
 )
 
 # Load ML models on startup
@@ -214,6 +220,41 @@ def upload_pdf():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/send-report-email', methods=['POST'])
+def send_report_email():
+    """
+    Send PDF report link via email
+    
+    Expected JSON body:
+    {
+        "email": "user@example.com",
+        "pdf_url": "https://res.cloudinary.com/...",
+        "report_date": "2026-02-09"  # Optional
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        email = data.get('email', '').strip()
+        pdf_url = data.get('pdf_url', '').strip()
+        report_date = data.get('report_date')
+        
+        if not email:
+            return jsonify({'success': False, 'error': 'Email address is required'}), 400
+        
+        if not pdf_url:
+            return jsonify({'success': False, 'error': 'PDF URL is required'}), 400
+        
+        result = email_service.send_pdf_report(email, pdf_url, report_date)
+        return jsonify(result), 200 if result['success'] else 500
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 @app.route('/api/chatbot/init', methods=['POST'])
 def init_chatbot():
