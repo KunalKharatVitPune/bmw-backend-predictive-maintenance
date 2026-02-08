@@ -17,21 +17,14 @@ app = Flask(__name__)
 env = os.getenv('FLASK_ENV', 'development')
 app.config.from_object(config[env])
 
-# Enable CORS - Allow all origins for production
-# Get CORS origins from environment or use wildcard
-cors_origins = os.getenv('CORS_ORIGINS', '*')
-if cors_origins == '*':
-    allowed_origins = "*"
-else:
-    allowed_origins = [origin.strip() for origin in cors_origins.split(',')]
-
-print(f"CORS Origins configured: {allowed_origins}")
-
+# Enable CORS - Allow ALL origins
 CORS(app, 
-     resources={r"/*": {"origins": allowed_origins}},
-     supports_credentials=False if allowed_origins == "*" else True,
-     allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+     resources={r"/*": {"origins": "*"}},
+     supports_credentials=False,
+     allow_headers=["*"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+
+print("CORS enabled for all origins")
 
 # Initialize services
 print("Initializing services...")
