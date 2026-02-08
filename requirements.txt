@@ -9,3 +9,4 @@ python-dotenv
 twilio
 googlemaps
 google-generativeai
+cloudinary

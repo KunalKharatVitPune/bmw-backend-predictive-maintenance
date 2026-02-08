@@ -8,7 +8,7 @@ import os
 import sys
 
 from config import config
-from services import PredictionService, AlertService, LocationService, GeminiService
+from services import PredictionService, AlertService, LocationService, GeminiService, CloudinaryService
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -53,6 +53,13 @@ gemini_service = GeminiService(
     api_key=getattr(app.config, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
 )
 
+# Cloudinary Service (for PDF storage)
+cloudinary_service = CloudinaryService(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET')
+)
+
 # Load ML models on startup
 try:
     prediction_service.load_models()
@@ -76,7 +83,8 @@ def index():
             'predict': '/api/predict',
             'service_centers': '/api/service-centers',
             'alerts': '/api/alerts/send',
-            'ai_insights': '/api/ai/insights'
+            'ai_insights': '/api/ai/insights',
+            'upload_pdf': '/api/upload-pdf'
         }
     }), 200
 
@@ -147,6 +155,65 @@ def get_ai_insights():
             'error': str(e)
         }), 500
 
+
+@app.route('/api/upload-pdf', methods=['POST'])
+def upload_pdf():
+    """
+    Upload PDF report to Cloudinary
+    
+    Expected JSON body:
+    {
+        "pdf_data": "base64_encoded_pdf_string",
+        "filename": "optional_custom_filename"
+    }
+    
+    Returns:
+    {
+        "success": true,
+        "url": "https://res.cloudinary.com/...",
+        "public_id": "...",
+        "message": "PDF uploaded successfully"
+    }
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'No data provided'
+            }), 400
+        
+        pdf_data = data.get('pdf_data')
+        filename = data.get('filename')
+        
+        if not pdf_data:
+            return jsonify({
+                'success': False,
+                'error': 'No PDF data provided'
+            }), 400
+        
+        # Upload to Cloudinary
+        result = cloudinary_service.upload_pdf(pdf_data, filename)
+        
+        if result['success']:
+            return jsonify({
+                'success': True,
+                'url': result['url'],
+                'public_id': result['public_id'],
+                'message': 'PDF uploaded successfully'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'error': result.get('error', 'Upload failed')
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
