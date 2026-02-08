@@ -53,6 +53,22 @@ except Exception as e:
 # ROUTES / ENDPOINTS
 # ============================================================================
 
+@app.route('/', methods=['GET'])
+def index():
+    """Root endpoint - Welcome message"""
+    return jsonify({
+        'message': '🚗 Vehicle Health Monitoring API',
+        'status': 'online',
+        'version': '1.0.0',
+        'endpoints': {
+            'health': '/health',
+            'predict': '/api/predict',
+            'service_centers': '/api/service-centers',
+            'alerts': '/api/alerts/send'
+        }
+    }), 200
+
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
