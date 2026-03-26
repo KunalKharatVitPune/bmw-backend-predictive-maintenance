@@ -8,6 +8,6 @@ scikit-learn
 python-dotenv
 twilio
 googlemaps
-google-generativeai
+openai
 cloudinary
 sendgrid

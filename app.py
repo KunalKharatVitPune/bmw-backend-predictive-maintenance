@@ -8,7 +8,7 @@ import os
 import sys
 
 from config import config
-from services import PredictionService, AlertService, LocationService, GeminiService, CloudinaryService, EmailService
+from services import PredictionService, OpenAIPredictionService, AlertService, LocationService, GeminiService, CloudinaryService, EmailService
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -29,11 +29,18 @@ print("CORS enabled for all origins")
 # Initialize services
 print("Initializing services...")
 
-# Prediction Service
-prediction_service = PredictionService(
-    lstm_model_path=app.config['LSTM_MODEL_PATH'],
-    autoencoder_model_path=app.config['AUTOENCODER_MODEL_PATH']
-)
+# Prediction Service — selected by PREDICTION_MODE config
+if app.config.get('PREDICTION_MODE') == 'openai':
+    print("🤖 Prediction mode: OpenAI GPT (features → GPT-4o-mini → predictions)")
+    prediction_service = OpenAIPredictionService(
+        api_key=app.config.get('OPENAI_API_KEY', '')
+    )
+else:
+    print("🧠 Prediction mode: ML models (LSTM + Autoencoder)")
+    prediction_service = PredictionService(
+        lstm_model_path=app.config['LSTM_MODEL_PATH'],
+        autoencoder_model_path=app.config['AUTOENCODER_MODEL_PATH']
+    )
 
 # Alert Service (Twilio)
 alert_service = AlertService(
@@ -48,9 +55,9 @@ location_service = LocationService(
     api_key=app.config['GOOGLE_MAPS_API_KEY']
 )
 
-# Gemini AI Service (for intelligent insights)
+# OpenAI AI Service (for intelligent insights)
 gemini_service = GeminiService(
-    api_key=getattr(app.config, 'GEMINI_API_KEY', '') or os.getenv('GEMINI_API_KEY', '')
+    api_key=getattr(app.config, 'OPENAI_API_KEY', '') or os.getenv('OPENAI_API_KEY', '')
 )
 
 # Cloudinary Service (for PDF storage)
@@ -582,6 +589,7 @@ if __name__ == '__main__':
     print(f"Environment: {env}")
     print(f"Port: {port}")
     print(f"Debug: {debug}")
+    print(f"Prediction Mode: {'🤖 OpenAI (GPT-4o-mini)' if app.config.get('PREDICTION_MODE') == 'openai' else '🧠 ML Models (LSTM + Autoencoder)'}")
     print(f"CORS Origins: {app.config['CORS_ORIGINS']}")
     print(f"{'='*60}\n")
     

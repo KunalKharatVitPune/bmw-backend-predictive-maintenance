@@ -28,8 +28,11 @@ class Config:
     # Google Maps
     GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
     
-    # Gemini AI API Key
-    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+    # Prediction Mode ('ml' or 'openai')
+    PREDICTION_MODE = os.getenv('PREDICTION_MODE', 'ml').lower()
+    
+    # OpenAI API Key
+    OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
     
     # Alert Thresholds
     ALERT_THRESHOLD_FAILURE = float(os.getenv('ALERT_THRESHOLD_FAILURE', '0.7'))
